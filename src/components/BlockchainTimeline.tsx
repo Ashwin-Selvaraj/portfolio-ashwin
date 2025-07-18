@@ -4,11 +4,15 @@ import { blockchainData } from '@/data/blockchainData';
 import { BlockComponent } from './BlockComponent';
 import { TimelineConnector } from './TimelineConnector';
 import { BlockModal } from './BlockModal';
+import { TransactionGame } from './TransactionGame';
+import { TransactionFeedback } from './TransactionFeedback';
 
 export const BlockchainTimeline: React.FC = () => {
   const [activeBlock, setActiveBlock] = useState(0);
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [validatedTransaction, setValidatedTransaction] = useState<any>(null);
+  const [fraudulentTransaction, setFraudulentTransaction] = useState<any>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -57,26 +61,29 @@ export const BlockchainTimeline: React.FC = () => {
     setExpandedBlock(blockId);
   };
 
+  const handleTransactionValidated = (transaction: any) => {
+    setValidatedTransaction(transaction);
+    setTimeout(() => setValidatedTransaction(null), 100);
+  };
+
+  const handleFraudDetected = (transaction: any) => {
+    setFraudulentTransaction(transaction);
+    setTimeout(() => setFraudulentTransaction(null), 100);
+  };
+
   return (
     <div className="relative">
-      {/* Background Matrix Rain Effect */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute text-primary opacity-20 text-xs font-mono animate-matrix"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 10}s`,
-              animationDuration: `${10 + Math.random() * 5}s`
-            }}
-          >
-            {Array.from({ length: 10 }, () => 
-              Math.random().toString(16).charAt(0)
-            ).join('\n')}
-          </div>
-        ))}
-      </div>
+      {/* Transaction Validation Game */}
+      <TransactionGame
+        onTransactionValidated={handleTransactionValidated}
+        onFraudDetected={handleFraudDetected}
+      />
+
+      {/* Transaction Feedback */}
+      <TransactionFeedback
+        validatedTransaction={validatedTransaction}
+        fraudulentTransaction={fraudulentTransaction}
+      />
 
       {/* Timeline Navigation */}
       <div className="fixed top-4 right-4 z-50 flex flex-col space-y-2">

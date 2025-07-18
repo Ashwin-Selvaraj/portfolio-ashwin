@@ -296,4 +296,19 @@
   .animate-hash-scan {
     animation: hash-scan 3s ease-in-out infinite;
   }
+
+  @keyframes fade-in-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.8);
+    }
+    50% {
+      opacity: 1;
+      transform: translateY(-10px) scale(1.1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-30px) scale(0.9);
+    }
+  }
 }
