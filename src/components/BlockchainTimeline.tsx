@@ -73,20 +73,22 @@ export const BlockchainTimeline: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* Transaction Validation Game */}
-      <TransactionGame
-        onTransactionValidated={handleTransactionValidated}
-        onFraudDetected={handleFraudDetected}
-      />
+      {/* Transaction Game - Hidden on mobile */}
+      <div className="hidden lg:block">
+        <TransactionGame
+          onTransactionValidated={handleTransactionValidated}
+          onFraudDetected={handleFraudDetected}
+        />
 
-      {/* Transaction Feedback */}
-      <TransactionFeedback
-        validatedTransaction={validatedTransaction}
-        fraudulentTransaction={fraudulentTransaction}
-      />
+        {/* Transaction Feedback */}
+        <TransactionFeedback
+          validatedTransaction={validatedTransaction}
+          fraudulentTransaction={fraudulentTransaction}
+        />
+      </div>
 
       {/* Timeline Navigation */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col space-y-2">
+      <div className="fixed top-4 right-2 md:right-4 z-50 flex flex-col space-y-1 md:space-y-2">
         {blockchainData.map((block, index) => (
           <button
             key={block.id}
@@ -97,7 +99,7 @@ export const BlockchainTimeline: React.FC = () => {
                 behavior: 'smooth'
               });
             }}
-            className={`w-3 h-3 rounded-full border transition-all duration-300 ${
+            className={`w-2 h-2 md:w-3 md:h-3 rounded-full border transition-all duration-300 ${
               activeBlock === index
                 ? 'bg-primary border-primary shadow-[0_0_10px_hsl(var(--primary))]'
                 : 'bg-transparent border-muted-foreground hover:border-primary'
@@ -108,12 +110,12 @@ export const BlockchainTimeline: React.FC = () => {
       </div>
 
       {/* Main Timeline */}
-      <div ref={timelineRef} className="relative">
+      <div ref={timelineRef} className="relative px-4 md:px-8">
         {blockchainData.map((block, index) => (
           <div
             key={block.id}
             ref={(el) => blockRefs.current[index] = el}
-            className="min-h-screen flex items-center justify-center relative"
+            className="min-h-[80vh] md:min-h-screen flex items-center justify-center relative"
             style={{ 
               transform: `translateZ(${(index - activeBlock) * 50}px)`,
               opacity: Math.abs(index - activeBlock) > 2 ? 0.3 : 1
@@ -160,15 +162,15 @@ export const BlockchainTimeline: React.FC = () => {
       )}
 
       {/* Current Block Info */}
-      <div className="fixed bottom-4 left-4 z-40 bg-card/80 backdrop-blur-sm border border-border rounded-lg p-4 max-w-sm">
-        <div className="text-sm text-muted-foreground font-mono">
+      <div className="fixed bottom-4 left-2 md:left-4 z-40 bg-card/80 backdrop-blur-sm border border-border rounded-lg p-2 md:p-4 max-w-[200px] md:max-w-sm">
+        <div className="text-xs md:text-sm text-muted-foreground font-mono">
           Block #{blockchainData[activeBlock]?.blockNumber}
         </div>
-        <div className="text-primary font-cyber font-bold">
+        <div className="text-primary font-cyber font-bold text-sm md:text-base truncate">
           {blockchainData[activeBlock]?.title}
         </div>
-        <div className="text-xs text-muted-foreground">
-          Hash: {blockchainData[activeBlock]?.hash.substring(0, 16)}...
+        <div className="text-[10px] md:text-xs text-muted-foreground">
+          Hash: {blockchainData[activeBlock]?.hash.substring(0, 12)}...
         </div>
       </div>
     </div>
