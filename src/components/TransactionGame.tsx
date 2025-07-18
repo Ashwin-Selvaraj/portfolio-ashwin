@@ -46,29 +46,44 @@ export const TransactionGame: React.FC<TransactionGameProps> = ({
       to: generateRandomAddress(),
       isFraudulent: Math.random() < 0.15, // 15% chance of fraud
       position: {
-        x: Math.random() * (window.innerWidth - 200),
-        y: Math.random() * (window.innerHeight - 100)
+        x: Math.random() * (window.innerWidth - 120), // Smaller width for smaller boxes
+        y: -100 // Start from above the screen
       },
-      animationDelay: Math.random() * 5
+      animationDelay: Math.random() * 2
     };
   }, []);
 
   useEffect(() => {
     // Generate initial transactions
-    const initialTransactions = Array.from({ length: 8 }, createTransaction);
+    const initialTransactions = Array.from({ length: 4 }, createTransaction);
     setTransactions(initialTransactions);
 
     // Continuously spawn new transactions
     const interval = setInterval(() => {
       setTransactions(prev => {
-        if (prev.length < 12) {
+        if (prev.length < 8) {
           return [...prev, createTransaction()];
         }
         return prev;
       });
-    }, 3000);
+    }, 2000);
 
-    return () => clearInterval(interval);
+    // Auto-remove transactions that fall off screen
+    const cleanupInterval = setInterval(() => {
+      setTransactions(prev => prev.filter(t => {
+        const element = document.getElementById(`transaction-${t.id}`);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          return rect.top < window.innerHeight + 100; // Remove when off screen
+        }
+        return true;
+      }));
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(cleanupInterval);
+    };
   }, [createTransaction]);
 
   const handleTransactionClick = (transaction: Transaction) => {
@@ -103,19 +118,23 @@ export const TransactionGame: React.FC<TransactionGameProps> = ({
       {transactions.map(transaction => (
         <div
           key={transaction.id}
-          className="fixed pointer-events-auto cursor-pointer z-30 group"
+          id={`transaction-${transaction.id}`}
+          className="fixed pointer-events-auto cursor-pointer z-20 group animate-fall"
           style={{
             left: transaction.position.x,
             top: transaction.position.y,
-            animationDelay: `${transaction.animationDelay}s`
+            animationDelay: `${transaction.animationDelay}s`,
+            animationDuration: '8s',
+            animationTimingFunction: 'linear',
+            animationFillMode: 'forwards'
           }}
           onClick={() => handleTransactionClick(transaction)}
         >
           <div
             className={`
-              relative p-3 rounded-lg border backdrop-blur-sm
-              transition-all duration-300 hover:scale-110
-              animate-pulse-glow font-mono text-xs
+              relative p-2 rounded border backdrop-blur-sm
+              transition-all duration-200 hover:scale-110
+              font-mono text-[10px] w-20 h-16
               ${transaction.isFraudulent 
                 ? 'bg-red-900/20 border-red-400/30 text-red-300 hover:bg-red-800/30' 
                 : 'bg-primary/10 border-primary/30 text-primary hover:bg-primary/20'
@@ -123,37 +142,31 @@ export const TransactionGame: React.FC<TransactionGameProps> = ({
             `}
           >
             {/* Transaction Header */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] opacity-60">TX</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[8px] opacity-60">TX</span>
               {transaction.isFraudulent && (
-                <AlertTriangle className="w-3 h-3 text-red-400 opacity-60" />
+                <AlertTriangle className="w-2 h-2 text-red-400 opacity-60" />
               )}
             </div>
 
-            {/* Transaction Hash */}
-            <div className="font-bold mb-1">
-              {transaction.hash}
+            {/* Transaction Hash - shortened */}
+            <div className="font-bold mb-1 text-[8px] truncate">
+              {transaction.hash.substring(0, 8)}
             </div>
 
             {/* Amount */}
-            <div className="text-[10px] opacity-80">
-              {transaction.amount.toFixed(4)} ETH
-            </div>
-
-            {/* From/To addresses */}
-            <div className="text-[9px] opacity-60 mt-1 space-y-1">
-              <div>From: {transaction.from}</div>
-              <div>To: {transaction.to}</div>
+            <div className="text-[8px] opacity-80 truncate">
+              {transaction.amount.toFixed(2)} ETH
             </div>
 
             {/* Hover tooltip */}
-            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-card border border-border rounded px-2 py-1 text-[10px] whitespace-nowrap">
+            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-card border border-border rounded px-1 py-0.5 text-[8px] whitespace-nowrap z-10">
               Click to validate
             </div>
 
             {/* Glow effect for fraudulent transactions */}
             {transaction.isFraudulent && (
-              <div className="absolute inset-0 -z-10 bg-red-400/20 blur-lg rounded-lg animate-pulse" />
+              <div className="absolute inset-0 -z-10 bg-red-400/20 blur-sm rounded animate-pulse" />
             )}
           </div>
         </div>
