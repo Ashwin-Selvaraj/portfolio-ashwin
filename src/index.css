@@ -2,41 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Cyberpunk Blockchain Portfolio Design System - All colors MUST be HSL */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core cyberpunk color palette */
+    --background: 220 25% 6%;
+    --foreground: 180 100% 90%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 25% 8%;
+    --card-foreground: 180 100% 90%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 25% 8%;
+    --popover-foreground: 180 100% 90%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Neon primary - Cyan */
+    --primary: 180 100% 50%;
+    --primary-foreground: 220 25% 6%;
+    --primary-glow: 180 100% 70%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Neon secondary - Magenta */
+    --secondary: 300 100% 60%;
+    --secondary-foreground: 220 25% 6%;
+    --secondary-glow: 300 100% 80%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted blockchain gray */
+    --muted: 220 15% 15%;
+    --muted-foreground: 180 50% 70%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Neon accent - Green */
+    --accent: 120 100% 50%;
+    --accent-foreground: 220 25% 6%;
+    --accent-glow: 120 100% 70%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Error/warning - Neon red */
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 220 25% 6%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 15% 20%;
+    --input: 220 15% 12%;
+    --ring: 180 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Custom blockchain design tokens */
+    --neon-purple: 270 100% 60%;
+    --neon-orange: 30 100% 60%;
+    --block-shadow: 220 25% 4%;
+    --timeline-glow: 180 100% 50%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(180 100% 50%), hsl(270 100% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(300 100% 60%), hsl(0 100% 60%));
+    --gradient-background: linear-gradient(135deg, hsl(220 25% 6%), hsl(220 25% 4%));
+    --gradient-block: linear-gradient(135deg, hsl(220 25% 8%), hsl(220 25% 12%));
+
+    /* Shadows and glows */
+    --shadow-neon: 0 0 20px hsl(var(--primary) / 0.5), 0 0 40px hsl(var(--primary) / 0.3);
+    --shadow-block: 0 10px 30px hsl(var(--block-shadow) / 0.8), 0 0 20px hsl(var(--primary) / 0.1);
+    --shadow-elevated: 0 25px 50px hsl(var(--block-shadow) / 0.9), 0 0 30px hsl(var(--primary) / 0.2);
+
+    /* Animations */
+    --transition-smooth: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +132,168 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-mono overflow-x-hidden;
+    background: var(--gradient-background);
+    font-family: 'Space Mono', monospace;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  /* Blockchain block styling */
+  .blockchain-block {
+    @apply relative bg-card border border-border rounded-lg p-6;
+    background: var(--gradient-block);
+    box-shadow: var(--shadow-block);
+    transition: var(--transition-smooth);
+    transform-style: preserve-3d;
+  }
+
+  .blockchain-block:hover {
+    box-shadow: var(--shadow-elevated);
+    transform: translateY(-5px) rotateX(5deg);
+  }
+
+  .blockchain-block.active {
+    border-color: hsl(var(--primary));
+    box-shadow: var(--shadow-neon);
+  }
+
+  /* Neon glow effects */
+  .neon-glow {
+    text-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+
+  .neon-border {
+    border: 1px solid currentColor;
+    box-shadow: 0 0 10px currentColor, inset 0 0 10px currentColor;
+  }
+
+  /* Timeline connector */
+  .timeline-connector {
+    @apply absolute w-1 bg-primary;
+    background: linear-gradient(to bottom, 
+      transparent 0%, 
+      hsl(var(--primary)) 20%, 
+      hsl(var(--primary)) 80%, 
+      transparent 100%);
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+
+  /* Hash animation */
+  .hash-flow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hash-flow::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      hsl(var(--primary) / 0.2), 
+      transparent);
+    animation: hash-scan 3s ease-in-out infinite;
+  }
+
+  /* Cyberpunk button */
+  .cyber-button {
+    @apply relative px-6 py-3 bg-transparent border font-bold tracking-wide uppercase;
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+    background: linear-gradient(45deg, transparent 30%, hsl(var(--primary) / 0.1) 70%);
+    transition: var(--transition-smooth);
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+  }
+
+  .cyber-button:hover {
+    background: hsl(var(--primary) / 0.1);
+    box-shadow: var(--shadow-neon);
+    transform: translateY(-2px);
+  }
+
+  .cyber-button:active {
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  /* Font utilities */
+  .font-cyber {
+    font-family: 'Orbitron', monospace;
+  }
+
+  .font-mono {
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Animation utilities */
+  @keyframes pulse-glow {
+    0% { opacity: 0.4; transform: scaleY(1); }
+    100% { opacity: 1; transform: scaleY(1.1); }
+  }
+
+  @keyframes hash-scan {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotateY(0deg); }
+    50% { transform: translateY(-10px) rotateY(180deg); }
+  }
+
+  @keyframes matrix-rain {
+    0% { transform: translateY(-100vh); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+
+  @keyframes flow-pulse {
+    0%, 100% { 
+      opacity: 0.4; 
+      transform: translate(-50%, -50%) scale(0.8); 
+    }
+    50% { 
+      opacity: 1; 
+      transform: translate(-50%, -50%) scale(1.2); 
+    }
+  }
+
+  @keyframes hash-pulse {
+    0%, 100% { 
+      opacity: 0.3; 
+      transform: translate(-50%, -50%) scaleY(0.5); 
+    }
+    50% { 
+      opacity: 1; 
+      transform: translate(-50%, -50%) scaleY(1.5); 
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-matrix {
+    animation: matrix-rain 10s linear infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-hash-scan {
+    animation: hash-scan 3s ease-in-out infinite;
   }
 }
