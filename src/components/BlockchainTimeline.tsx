@@ -9,6 +9,8 @@ import { TransactionFeedback } from './TransactionFeedback';
 
 export const BlockchainTimeline: React.FC = () => {
   const [activeBlock, setActiveBlock] = useState(0);
+  const [targetBlock, setTargetBlock] = useState(0);
+  const [cameraPosition, setCameraPosition] = useState(0);
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [validatedTransaction, setValidatedTransaction] = useState<any>(null);
@@ -18,6 +20,58 @@ export const BlockchainTimeline: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
+
+  // Smooth camera interpolation
+  useEffect(() => {
+    const startPosition = cameraPosition;
+    const targetPosition = targetBlock;
+    
+    if (Math.abs(targetPosition - startPosition) < 0.01) {
+      setCameraPosition(targetPosition);
+      setActiveBlock(targetBlock);
+      return;
+    }
+
+    const startTime = Date.now();
+    const duration = 1000; // 1 second smooth transition
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Cubic-bezier easing function for smooth motion
+      const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+      const easedProgress = easeInOutCubic(progress);
+      
+      const newPosition = startPosition + (targetPosition - startPosition) * easedProgress;
+      setCameraPosition(newPosition);
+      
+      // Update active block when we're halfway through the transition
+      if (progress >= 0.5 && activeBlock !== targetBlock) {
+        setActiveBlock(targetBlock);
+      }
+      
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        setCameraPosition(targetPosition);
+        setActiveBlock(targetBlock);
+        setIsScrolling(false);
+      }
+    };
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [targetBlock, cameraPosition, activeBlock]);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -50,16 +104,17 @@ export const BlockchainTimeline: React.FC = () => {
       const direction = diff > 0 ? 1 : -1;
       const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
       
-      if (nextBlock !== activeBlock) {
-        setActiveBlock(nextBlock);
-        // Use immediate scroll for mobile
+      if (nextBlock !== targetBlock) {
+        setIsScrolling(true);
+        setTargetBlock(nextBlock);
+        // Smooth scroll for mobile with proper timing
         window.scrollTo({
           top: nextBlock * window.innerHeight,
           behavior: 'smooth'
         });
       }
       
-      setTimeout(() => setIsScrolling(false), 600);
+      // Let the animation handle isScrolling state
     }
     
     setTouchStart(null);
@@ -73,8 +128,8 @@ export const BlockchainTimeline: React.FC = () => {
       const windowHeight = window.innerHeight;
       const currentBlockIndex = Math.round(scrollY / windowHeight);
       
-      if (currentBlockIndex !== activeBlock && currentBlockIndex < blockchainData.length) {
-        setActiveBlock(currentBlockIndex);
+      if (currentBlockIndex !== targetBlock && currentBlockIndex < blockchainData.length) {
+        setTargetBlock(currentBlockIndex);
       }
     };
 
@@ -93,8 +148,9 @@ export const BlockchainTimeline: React.FC = () => {
         const direction = newAccumulator > 0 ? 1 : -1;
         const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
         
-        if (nextBlock !== activeBlock) {
-          setActiveBlock(nextBlock);
+        if (nextBlock !== targetBlock) {
+          setIsScrolling(true);
+          setTargetBlock(nextBlock);
           window.scrollTo({
             top: nextBlock * window.innerHeight,
             behavior: 'smooth'
@@ -102,7 +158,7 @@ export const BlockchainTimeline: React.FC = () => {
         }
 
         setScrollAccumulator(0);
-        setTimeout(() => setIsScrolling(false), 800);
+        // Let the animation handle isScrolling state
       }
     };
 
@@ -161,7 +217,8 @@ export const BlockchainTimeline: React.FC = () => {
           <button
             key={block.id}
             onClick={() => {
-              setActiveBlock(index);
+              setIsScrolling(true);
+              setTargetBlock(index);
               if (!isMobile) {
                 window.scrollTo({
                   top: index * window.innerHeight,
@@ -170,7 +227,7 @@ export const BlockchainTimeline: React.FC = () => {
               }
             }}
             className={`w-2 h-2 md:w-3 md:h-3 rounded-full border transition-all duration-300 ${
-              activeBlock === index
+              Math.abs(cameraPosition - index) < 0.5
                 ? 'bg-primary border-primary shadow-[0_0_10px_hsl(var(--primary))]'
                 : 'bg-transparent border-muted-foreground hover:border-primary'
             }`}
@@ -183,19 +240,19 @@ export const BlockchainTimeline: React.FC = () => {
       {isMobile && (
         <div className="fixed top-4 left-4 z-50 bg-card/80 backdrop-blur-sm border border-border rounded-lg p-2">
           <div className="text-xs text-muted-foreground mb-1">
-            {activeBlock + 1} / {blockchainData.length}
+            {Math.round(cameraPosition) + 1} / {blockchainData.length}
           </div>
           <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
             <div 
               className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${((activeBlock + 1) / blockchainData.length) * 100}%` }}
+              style={{ width: `${((cameraPosition + 1) / blockchainData.length) * 100}%` }}
             />
           </div>
         </div>
       )}
 
       {/* Mobile Swipe Indicator */}
-      {isMobile && activeBlock === 0 && (
+      {isMobile && Math.round(cameraPosition) === 0 && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 text-center animate-bounce">
           <div className="text-muted-foreground text-sm mb-2">Swipe up to explore</div>
           <div className="w-6 h-8 border border-muted-foreground rounded-full mx-auto flex items-start justify-center p-1">
@@ -212,19 +269,19 @@ export const BlockchainTimeline: React.FC = () => {
             ref={(el) => blockRefs.current[index] = el}
             className={`${isMobile ? 'h-screen mobile-scroll-item' : 'min-h-[80vh] md:min-h-screen'} flex items-center justify-center relative`}
             style={{ 
-              // Mobile: Only show active block with cinematic transitions
+              // Smooth opacity and positioning based on camera distance
               opacity: isMobile 
-                ? (activeBlock === index ? 1 : 0) 
-                : (Math.abs(index - activeBlock) > 2 ? 0.3 : 1),
+                ? (Math.abs(cameraPosition - index) < 0.5 ? 1 : 0) 
+                : (Math.abs(index - cameraPosition) > 2 ? 0.3 : 1),
               transform: isMobile 
-                ? (activeBlock === index 
-                    ? 'translateY(0) scale(1)' 
-                    : `translateY(${(index - activeBlock) * 100}vh) scale(0.8)`)
-                : `translateZ(${(index - activeBlock) * 50}px)`,
-              // Mobile: Smooth cinematic transitions
+                ? (Math.abs(cameraPosition - index) < 0.5
+                    ? 'translateY(0)' 
+                    : `translateY(${(index - cameraPosition) * 100}vh)`)
+                : `translateZ(${(index - cameraPosition) * 50}px)`,
+              // Smooth transitions for all platforms
               transition: isMobile 
-                ? 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
-                : 'none',
+                ? 'opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
+                : 'opacity 0.3s ease-out',
               // Mobile: Ensure blocks are positioned properly
               ...(isMobile && {
                 position: 'absolute',
@@ -232,7 +289,7 @@ export const BlockchainTimeline: React.FC = () => {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                zIndex: activeBlock === index ? 10 : 1
+                zIndex: Math.abs(cameraPosition - index) < 0.5 ? 10 : 1
               })
             }}
           >
@@ -241,30 +298,32 @@ export const BlockchainTimeline: React.FC = () => {
               <TimelineConnector
                 startBlock={block}
                 endBlock={blockchainData[index + 1]}
-                isActive={activeBlock >= index}
+                isActive={cameraPosition >= index}
               />
             )}
 
             {/* Block Component */}
             <BlockComponent
               block={block}
-              isActive={activeBlock === index}
-              isPrevious={activeBlock > index}
-              isNext={activeBlock < index}
+              isActive={Math.abs(cameraPosition - index) < 0.5}
+              isPrevious={cameraPosition > index}
+              isNext={cameraPosition < index}
               onClick={() => handleBlockClick(block.id)}
               style={{
                 transform: isMobile 
-                  ? `perspective(800px) rotateX(${activeBlock === index ? 0 : 10}deg) scale(${activeBlock === index ? 0.9 : 0.7})`
+                  ? `perspective(800px) rotateX(${Math.abs(cameraPosition - index) < 0.5 ? 0 : 5}deg) scale(0.9)`
                   : `
                       perspective(1000px)
-                      rotateX(${(index - activeBlock) * 10}deg)
-                      rotateY(${(index - activeBlock) * 5}deg)
+                      rotateX(${(index - cameraPosition) * 8}deg)
+                      rotateY(${(index - cameraPosition) * 3}deg)
                       translateX(${block.position.x}px)
                       translateY(${block.position.y}px)
-                      translateZ(${block.position.z + (index - activeBlock) * 100}px)
-                      scale(${activeBlock === index ? 1 : 0.8})
+                      translateZ(${block.position.z + (index - cameraPosition) * 100}px)
+                      scale(${Math.abs(cameraPosition - index) < 0.5 ? 1.05 : 0.95})
                     `,
-                transition: isMobile ? 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+                transition: isMobile 
+                  ? 'transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
+                  : 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                 // Mobile: Ensure proper sizing and centering
                 ...(isMobile && {
                   maxWidth: '90vw',
@@ -288,13 +347,13 @@ export const BlockchainTimeline: React.FC = () => {
       {/* Current Block Info */}
       <div className="fixed bottom-4 left-2 md:left-4 z-40 bg-card/80 backdrop-blur-sm border border-border rounded-lg p-2 md:p-4 max-w-[200px] md:max-w-sm">
         <div className="text-xs md:text-sm text-muted-foreground font-mono">
-          Block #{blockchainData[activeBlock]?.blockNumber}
+          Block #{blockchainData[Math.round(cameraPosition)]?.blockNumber}
         </div>
         <div className="text-primary font-cyber font-bold text-sm md:text-base truncate">
-          {blockchainData[activeBlock]?.title}
+          {blockchainData[Math.round(cameraPosition)]?.title}
         </div>
         <div className="text-[10px] md:text-xs text-muted-foreground">
-          Hash: {blockchainData[activeBlock]?.hash.substring(0, 12)}...
+          Hash: {blockchainData[Math.round(cameraPosition)]?.hash.substring(0, 12)}...
         </div>
       </div>
     </div>
