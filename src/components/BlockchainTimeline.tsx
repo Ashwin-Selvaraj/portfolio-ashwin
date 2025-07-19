@@ -124,14 +124,16 @@ export const BlockchainTimeline: React.FC = () => {
       {/* Main Timeline */}
       <div ref={timelineRef} className="relative px-4 md:px-8">
         {blockchainData.map((block, index) => (
-          <div
-            key={block.id}
-            ref={(el) => blockRefs.current[index] = el}
-            className="min-h-[80vh] md:min-h-screen flex items-center justify-center relative"
-            style={{ 
-              transform: `translateZ(${(index - activeBlock) * 50}px)`,
-              opacity: Math.abs(index - activeBlock) > 2 ? 0.3 : 1
-            }}
+            <div
+              key={block.id}
+              ref={(el) => blockRefs.current[index] = el}
+              className="min-h-screen flex items-center justify-center relative"
+              style={{ 
+                transform: `translateZ(${(index - activeBlock) * 50}px)`,
+                opacity: window.innerWidth < 768 
+                  ? (activeBlock === index ? 1 : 0)
+                  : (Math.abs(index - activeBlock) > 2 ? 0.3 : 1)
+              }}
           >
             {/* Timeline Connector */}
             {index < blockchainData.length - 1 && (
