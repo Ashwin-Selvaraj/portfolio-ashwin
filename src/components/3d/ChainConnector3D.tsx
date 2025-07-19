@@ -1,7 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Cylinder, Torus } from '@react-three/drei';
-import { Group, Vector3, Quaternion, Euler } from 'three';
+import { Group, Vector3 } from 'three';
 
 interface ChainConnector3DProps {
   startPosition: [number, number, number];
@@ -16,85 +15,70 @@ export const ChainConnector3D: React.FC<ChainConnector3DProps> = ({
 }) => {
   const groupRef = useRef<Group>(null);
 
-  const { distance, direction, midPosition } = useMemo(() => {
+  const { distance, midPosition, numLinks } = useMemo(() => {
     const start = new Vector3(...startPosition);
     const end = new Vector3(...endPosition);
-    const direction = end.clone().sub(start).normalize();
-    const distance = start.distanceTo(end);
+    const distance = start.distanceTo(end) - 4; // Account for block sizes
     const midPosition = start.clone().add(end).multiplyScalar(0.5);
+    const numLinks = Math.max(1, Math.floor(distance / 2));
     
     return {
-      distance: distance - 4, // Account for block sizes
-      direction,
-      midPosition: midPosition.toArray() as [number, number, number]
+      distance,
+      midPosition: midPosition.toArray() as [number, number, number],
+      numLinks
     };
-  }, [startPosition, endPosition]);
-
-  const rotation = useMemo(() => {
-    const start = new Vector3(...startPosition);
-    const end = new Vector3(...endPosition);
-    const direction = end.clone().sub(start).normalize();
-    
-    // Calculate rotation to align cylinder with direction
-    const up = new Vector3(0, 1, 0);
-    const quaternion = new Quaternion();
-    quaternion.setFromUnitVectors(up, direction);
-    const euler = new Euler().setFromQuaternion(quaternion);
-    
-    return [euler.x, euler.y, euler.z] as [number, number, number];
   }, [startPosition, endPosition]);
 
   useFrame((state) => {
     if (groupRef.current && isActive) {
-      // Pulse effect for active connections
-      const pulse = Math.sin(state.clock.elapsedTime * 3) * 0.1 + 1;
+      // Gentle pulse effect for active connections
+      const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.05 + 1;
       groupRef.current.scale.setScalar(pulse);
     }
   });
 
-  const numLinks = Math.floor(distance / 1.5);
-
   return (
     <group ref={groupRef}>
       {/* Main Chain Cable */}
-      <Cylinder
-        args={[0.05, 0.05, distance, 8]}
-        position={midPosition}
-        rotation={rotation}
-      >
+      <mesh position={midPosition}>
+        <cylinderGeometry args={[0.05, 0.05, distance, 8]} />
         <meshStandardMaterial
           color={isActive ? "#00ff88" : "#333366"}
           emissive={isActive ? "#002211" : "#000"}
           roughness={0.4}
           metalness={0.8}
         />
-      </Cylinder>
+      </mesh>
 
       {/* Chain Links */}
       {Array.from({ length: numLinks }, (_, i) => {
         const t = (i + 1) / (numLinks + 1);
-        const linkPosition = new Vector3()
-          .copy(new Vector3(...startPosition))
-          .lerp(new Vector3(...endPosition), t);
+        const start = new Vector3(...startPosition);
+        const end = new Vector3(...endPosition);
+        const linkPosition = start.lerp(end, t);
 
         return (
           <group key={i} position={linkPosition.toArray()}>
-            <Torus args={[0.15, 0.03, 8, 16]} rotation={[Math.PI / 2, 0, 0]}>
+            {/* First torus ring */}
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[0.15, 0.03, 8, 16]} />
               <meshStandardMaterial
                 color={isActive ? "#00ff88" : "#444477"}
                 emissive={isActive ? "#001111" : "#000"}
                 roughness={0.3}
                 metalness={0.9}
               />
-            </Torus>
-            <Torus args={[0.15, 0.03, 8, 16]} rotation={[0, Math.PI / 2, 0]}>
+            </mesh>
+            {/* Second torus ring perpendicular */}
+            <mesh rotation={[0, Math.PI / 2, 0]}>
+              <torusGeometry args={[0.15, 0.03, 8, 16]} />
               <meshStandardMaterial
                 color={isActive ? "#00ff88" : "#444477"}
                 emissive={isActive ? "#001111" : "#000"}
                 roughness={0.3}
                 metalness={0.9}
               />
-            </Torus>
+            </mesh>
           </group>
         );
       })}
@@ -129,12 +113,14 @@ const DataFlowParticles: React.FC<{
 
   return (
     <group ref={particleRef}>
-      <Cylinder args={[0.02, 0.02, 0.3, 6]}>
+      <mesh>
+        <cylinderGeometry args={[0.02, 0.02, 0.3, 6]} />
         <meshBasicMaterial color="#00ffff" transparent opacity={0.8} />
-      </Cylinder>
-      <Cylinder args={[0.01, 0.01, 0.1, 6]} position={[0, 0.2, 0]}>
+      </mesh>
+      <mesh position={[0, 0.2, 0]}>
+        <cylinderGeometry args={[0.01, 0.01, 0.1, 6]} />
         <meshBasicMaterial color="#ffffff" />
-      </Cylinder>
+      </mesh>
     </group>
   );
 };

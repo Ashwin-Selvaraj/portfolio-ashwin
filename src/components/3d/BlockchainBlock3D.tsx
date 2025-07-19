@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Box, RoundedBox } from '@react-three/drei';
+import { Text } from '@react-three/drei';
 import { Mesh, Vector3 } from 'three';
 import { BlockData } from '@/types/blockchain';
 
@@ -39,22 +39,20 @@ export const BlockchainBlock3D: React.FC<BlockchainBlock3DProps> = ({
   return (
     <group position={position}>
       {/* Main Block */}
-      <RoundedBox
+      <mesh
         ref={meshRef}
-        args={[2, 2, 2]}
-        radius={0.1}
-        smoothness={4}
         onClick={onClick}
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
       >
+        <boxGeometry args={[2, 2, 2]} />
         <meshStandardMaterial
           color={isActive ? "#00ff88" : hovered ? "#0066ff" : "#1a1a2e"}
           emissive={isActive ? "#003322" : hovered ? "#001122" : "#000"}
           roughness={0.3}
           metalness={0.7}
         />
-      </RoundedBox>
+      </mesh>
 
       {/* Block Number */}
       <Text
@@ -63,7 +61,6 @@ export const BlockchainBlock3D: React.FC<BlockchainBlock3DProps> = ({
         color="#00ff88"
         anchorX="center"
         anchorY="middle"
-        font="/fonts/JetBrainsMono-Regular.woff"
       >
         #{block.blockNumber}
       </Text>
@@ -76,8 +73,6 @@ export const BlockchainBlock3D: React.FC<BlockchainBlock3DProps> = ({
         anchorX="center"
         anchorY="middle"
         maxWidth={1.8}
-        textAlign="center"
-        font="/fonts/JetBrainsMono-Regular.woff"
       >
         {block.title}
       </Text>
@@ -90,22 +85,21 @@ export const BlockchainBlock3D: React.FC<BlockchainBlock3DProps> = ({
         anchorX="center"
         anchorY="middle"
         maxWidth={1.8}
-        textAlign="center"
-        font="/fonts/JetBrainsMono-Regular.woff"
       >
         {block.hash.substring(0, 12)}...
       </Text>
 
       {/* Glowing edges for active block */}
       {isActive && (
-        <Box args={[2.1, 2.1, 2.1]}>
+        <mesh>
+          <boxGeometry args={[2.1, 2.1, 2.1]} />
           <meshBasicMaterial
             color="#00ff88"
             transparent
             opacity={0.1}
             wireframe
           />
-        </Box>
+        </mesh>
       )}
     </group>
   );
