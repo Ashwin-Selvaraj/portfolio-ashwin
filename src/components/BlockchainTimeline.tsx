@@ -89,9 +89,9 @@ export const BlockchainTimeline: React.FC = () => {
       const swipeTime = Date.now() - touchStartTime;
       const swipeVelocity = Math.abs(swipeDistance) / swipeTime;
       
-      // More sensitive thresholds for smoother interaction
-      const minDistance = 30;
-      const minVelocity = 0.1;
+      // Higher thresholds for more deliberate scrolling
+      const minDistance = 80;
+      const minVelocity = 0.3;
 
       if (Math.abs(swipeDistance) > minDistance || swipeVelocity > minVelocity) {
         setIsScrolling(true);
@@ -102,8 +102,8 @@ export const BlockchainTimeline: React.FC = () => {
           setActiveBlock(nextBlock);
         }
         
-        // Shorter timeout for more responsive feel
-        setTimeout(() => setIsScrolling(false), 600);
+        // Longer timeout to prevent rapid scrolling
+        setTimeout(() => setIsScrolling(false), 1200);
       }
     };
 
@@ -204,7 +204,7 @@ export const BlockchainTimeline: React.FC = () => {
                 left: window.innerWidth < 768 ? 0 : 'auto',
                 right: window.innerWidth < 768 ? 0 : 'auto',
                 width: window.innerWidth < 768 ? '100%' : 'auto',
-                transition: window.innerWidth < 768 ? 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease-out' : 'none'
+                transition: window.innerWidth < 768 ? 'transform 1.0s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.6s ease-out' : 'none'
               }}
           >
             {/* Timeline Connector - Hidden on mobile */}
