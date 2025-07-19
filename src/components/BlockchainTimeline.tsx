@@ -13,6 +13,7 @@ export const BlockchainTimeline: React.FC = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const [validatedTransaction, setValidatedTransaction] = useState<any>(null);
   const [fraudulentTransaction, setFraudulentTransaction] = useState<any>(null);
+  const [scrollAccumulator, setScrollAccumulator] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -33,19 +34,30 @@ export const BlockchainTimeline: React.FC = () => {
       e.preventDefault();
       if (isScrolling) return;
 
-      setIsScrolling(true);
-      const direction = e.deltaY > 0 ? 1 : -1;
-      const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
-      
-      if (nextBlock !== activeBlock) {
-        setActiveBlock(nextBlock);
-        window.scrollTo({
-          top: nextBlock * window.innerHeight,
-          behavior: 'smooth'
-        });
-      }
+      // Add scroll threshold - require more deliberate scrolling
+      const newAccumulator = scrollAccumulator + e.deltaY;
+      setScrollAccumulator(newAccumulator);
 
-      setTimeout(() => setIsScrolling(false), 500);
+      // Only move blocks when accumulator exceeds threshold
+      const threshold = 100; // Adjust this value to make it more/less sensitive
+      
+      if (Math.abs(newAccumulator) > threshold) {
+        setIsScrolling(true);
+        const direction = newAccumulator > 0 ? 1 : -1;
+        const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
+        
+        if (nextBlock !== activeBlock) {
+          setActiveBlock(nextBlock);
+          window.scrollTo({
+            top: nextBlock * window.innerHeight,
+            behavior: 'smooth'
+          });
+        }
+
+        // Reset accumulator after movement
+        setScrollAccumulator(0);
+        setTimeout(() => setIsScrolling(false), 800);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
