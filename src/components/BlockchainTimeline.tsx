@@ -168,21 +168,36 @@ export const BlockchainTimeline: React.FC = () => {
       </div>
 
       {/* Main Timeline */}
-      <div ref={timelineRef} className="relative px-4 md:px-8">
+      <div 
+        ref={timelineRef} 
+        className="relative px-4 md:px-8"
+        style={{ 
+          height: `${blockchainData.length * 100}vh`,
+          overflow: window.innerWidth < 768 ? 'hidden' : 'visible'
+        }}
+      >
         {blockchainData.map((block, index) => (
             <div
               key={block.id}
               ref={(el) => blockRefs.current[index] = el}
               className="min-h-screen flex items-center justify-center relative"
               style={{ 
-                transform: `translateZ(${(index - activeBlock) * 50}px)`,
+                transform: window.innerWidth < 768 
+                  ? `translateY(${(index - activeBlock) * 100}vh)`
+                  : `translateZ(${(index - activeBlock) * 50}px)`,
                 opacity: window.innerWidth < 768 
                   ? (activeBlock === index ? 1 : 0)
-                  : (Math.abs(index - activeBlock) > 2 ? 0.3 : 1)
+                  : (Math.abs(index - activeBlock) > 2 ? 0.3 : 1),
+                position: window.innerWidth < 768 ? 'absolute' : 'relative',
+                top: window.innerWidth < 768 ? 0 : 'auto',
+                left: window.innerWidth < 768 ? 0 : 'auto',
+                right: window.innerWidth < 768 ? 0 : 'auto',
+                width: window.innerWidth < 768 ? '100%' : 'auto',
+                transition: window.innerWidth < 768 ? 'transform 0.5s ease-in-out, opacity 0.3s ease-in-out' : 'none'
               }}
           >
-            {/* Timeline Connector */}
-            {index < blockchainData.length - 1 && (
+            {/* Timeline Connector - Hidden on mobile */}
+            {index < blockchainData.length - 1 && window.innerWidth >= 768 && (
               <TimelineConnector
                 startBlock={block}
                 endBlock={blockchainData[index + 1]}
@@ -198,15 +213,17 @@ export const BlockchainTimeline: React.FC = () => {
               isNext={activeBlock < index}
               onClick={() => handleBlockClick(block.id)}
               style={{
-                transform: `
-                  perspective(1000px)
-                  rotateX(${(index - activeBlock) * 10}deg)
-                  rotateY(${(index - activeBlock) * 5}deg)
-                  translateX(${window.innerWidth < 768 ? 0 : block.position.x}px)
-                  translateY(${window.innerWidth < 768 ? 0 : block.position.y}px)
-                  translateZ(${block.position.z + (index - activeBlock) * 100}px)
-                  scale(${activeBlock === index ? 1 : 0.8})
-                `
+                transform: window.innerWidth < 768 
+                  ? 'none'
+                  : `
+                    perspective(1000px)
+                    rotateX(${(index - activeBlock) * 10}deg)
+                    rotateY(${(index - activeBlock) * 5}deg)
+                    translateX(${block.position.x}px)
+                    translateY(${block.position.y}px)
+                    translateZ(${block.position.z + (index - activeBlock) * 100}px)
+                    scale(${activeBlock === index ? 1 : 0.8})
+                  `
               }}
             />
           </div>
