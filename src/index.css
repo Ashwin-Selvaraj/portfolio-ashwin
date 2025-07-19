@@ -326,4 +326,18 @@
   .animate-fall {
     animation: fall 8s linear forwards;
   }
+
+  /* Mobile scroll snapping */
+  @media (max-width: 768px) {
+    .mobile-scroll-container {
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
+    .mobile-scroll-item {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+  }
 }
