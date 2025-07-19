@@ -154,8 +154,8 @@ export const BlockchainTimeline: React.FC = () => {
                   perspective(1000px)
                   rotateX(${(index - activeBlock) * 10}deg)
                   rotateY(${(index - activeBlock) * 5}deg)
-                  translateX(${block.position.x}px)
-                  translateY(${block.position.y}px)
+                  translateX(${window.innerWidth < 768 ? 0 : block.position.x}px)
+                  translateY(${window.innerWidth < 768 ? 0 : block.position.y}px)
                   translateZ(${block.position.z + (index - activeBlock) * 100}px)
                   scale(${activeBlock === index ? 1 : 0.8})
                 `
