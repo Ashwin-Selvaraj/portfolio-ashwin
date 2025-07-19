@@ -45,7 +45,7 @@ export const BlockchainTimeline: React.FC = () => {
         });
       }
 
-      setTimeout(() => setIsScrolling(false), 1000);
+      setTimeout(() => setIsScrolling(false), 500);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
