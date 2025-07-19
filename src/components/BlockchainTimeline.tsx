@@ -196,13 +196,7 @@ export const BlockchainTimeline: React.FC = () => {
   };
 
   return (
-    <div className="relative">
-      {/* Scroll container to ensure proper height */}
-      <div 
-        className="absolute inset-0 pointer-events-none" 
-        style={{ height: `${blockchainData.length * 100}vh` }}
-      />
-      
+    <div className={`relative ${isMobile ? 'h-screen overflow-hidden' : ''}`}>
       {/* Transaction Game - Hidden on mobile */}
       <div className="hidden lg:block">
         <TransactionGame
@@ -268,31 +262,34 @@ export const BlockchainTimeline: React.FC = () => {
       )}
 
       {/* Main Timeline */}
-      <div ref={timelineRef} className={`relative ${isMobile ? 'h-screen overflow-hidden' : 'px-4 md:px-8'}`} style={{ minHeight: `${blockchainData.length * 100}vh` }}>
+      <div ref={timelineRef} className={`relative ${isMobile ? '' : 'px-4 md:px-8'}`}>
         {blockchainData.map((block, index) => (
           <div
             key={block.id}
             ref={(el) => blockRefs.current[index] = el}
-            className={`${isMobile ? 'h-screen' : 'min-h-screen'} flex items-center justify-center relative`}
+            className={`${isMobile ? 'h-screen mobile-scroll-item' : 'min-h-[80vh] md:min-h-screen'} flex items-center justify-center relative`}
             style={{ 
-              // For mobile: Use fixed positioning with proper transforms
-              ...(isMobile ? {
-                position: 'fixed',
+              // Smooth opacity and positioning based on camera distance
+              opacity: isMobile 
+                ? (Math.abs(cameraPosition - index) < 0.5 ? 1 : 0) 
+                : (Math.abs(index - cameraPosition) > 2 ? 0.3 : 1),
+              transform: isMobile 
+                ? (Math.abs(cameraPosition - index) < 0.5
+                    ? 'translateY(0)' 
+                    : `translateY(${(index - cameraPosition) * 100}vh)`)
+                : `translateZ(${(index - cameraPosition) * 50}px)`,
+              // Smooth transitions for all platforms
+              transition: isMobile 
+                ? 'opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
+                : 'opacity 0.3s ease-out',
+              // Mobile: Ensure blocks are positioned properly
+              ...(isMobile && {
+                position: 'absolute',
                 top: 0,
                 left: 0,
                 right: 0,
                 bottom: 0,
-                opacity: Math.abs(cameraPosition - index) < 0.5 ? 1 : 0,
-                transform: Math.abs(cameraPosition - index) < 0.5 
-                  ? 'translateY(0) scale(1)' 
-                  : `translateY(${(index - cameraPosition) * 100}vh) scale(0.9)`,
-                transition: 'opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                 zIndex: Math.abs(cameraPosition - index) < 0.5 ? 10 : 1
-              } : {
-                // For desktop: Use normal flow with transforms
-                opacity: Math.abs(index - cameraPosition) > 2 ? 0.3 : 1,
-                transform: `translateZ(${(index - cameraPosition) * 50}px)`,
-                transition: 'opacity 0.3s ease-out'
               })
             }}
           >
