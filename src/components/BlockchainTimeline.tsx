@@ -39,7 +39,7 @@ export const BlockchainTimeline: React.FC = () => {
       setScrollAccumulator(newAccumulator);
 
       // Only move blocks when accumulator exceeds threshold
-      const threshold = 60; // Adjust this value to make it more/less sensitive
+      const threshold = 50; // Adjust this value to make it more/less sensitive
       
       if (Math.abs(newAccumulator) > threshold) {
         setIsScrolling(true);
