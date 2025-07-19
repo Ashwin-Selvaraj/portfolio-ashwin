@@ -6,7 +6,6 @@ import { TimelineConnector } from './TimelineConnector';
 import { BlockModal } from './BlockModal';
 import { TransactionGame } from './TransactionGame';
 import { TransactionFeedback } from './TransactionFeedback';
-import { Blockchain3DScene } from './3d/Blockchain3DScene';
 
 export const BlockchainTimeline: React.FC = () => {
   const [activeBlock, setActiveBlock] = useState(0);
@@ -15,7 +14,6 @@ export const BlockchainTimeline: React.FC = () => {
   const [validatedTransaction, setValidatedTransaction] = useState<any>(null);
   const [fraudulentTransaction, setFraudulentTransaction] = useState<any>(null);
   const [scrollAccumulator, setScrollAccumulator] = useState(0);
-  const [use3D, setUse3D] = useState(true);
   const timelineRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -85,20 +83,8 @@ export const BlockchainTimeline: React.FC = () => {
     setTimeout(() => setFraudulentTransaction(null), 100);
   };
 
-  if (use3D) {
-    return <Blockchain3DScene />;
-  }
-
   return (
     <div className="relative">
-      {/* 3D Toggle */}
-      <button
-        onClick={() => setUse3D(!use3D)}
-        className="fixed top-4 left-4 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg hover:bg-primary/90 transition-colors"
-      >
-        Switch to {use3D ? '2D' : '3D'} View
-      </button>
-
       {/* Transaction Game - Hidden on mobile */}
       <div className="hidden lg:block">
         <TransactionGame
