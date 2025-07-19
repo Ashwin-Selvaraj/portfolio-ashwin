@@ -68,33 +68,42 @@ export const BlockchainTimeline: React.FC = () => {
     // Mobile touch handling
     let touchStartY = 0;
     let touchEndY = 0;
+    let touchStartTime = 0;
     
     const handleTouchStart = (e: TouchEvent) => {
       if (!isMobile) return;
-      touchStartY = e.changedTouches[0].screenY;
+      touchStartY = e.changedTouches[0].clientY;
+      touchStartTime = Date.now();
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isMobile || isScrolling) return;
+      e.preventDefault(); // Prevent default scrolling
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       if (!isMobile || isScrolling) return;
       
-      touchEndY = e.changedTouches[0].screenY;
+      touchEndY = e.changedTouches[0].clientY;
       const swipeDistance = touchStartY - touchEndY;
-      const threshold = 50;
+      const swipeTime = Date.now() - touchStartTime;
+      const swipeVelocity = Math.abs(swipeDistance) / swipeTime;
+      
+      // More sensitive thresholds for smoother interaction
+      const minDistance = 30;
+      const minVelocity = 0.1;
 
-      if (Math.abs(swipeDistance) > threshold) {
+      if (Math.abs(swipeDistance) > minDistance || swipeVelocity > minVelocity) {
         setIsScrolling(true);
         const direction = swipeDistance > 0 ? 1 : -1;
         const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
         
         if (nextBlock !== activeBlock) {
           setActiveBlock(nextBlock);
-          window.scrollTo({
-            top: nextBlock * window.innerHeight,
-            behavior: 'smooth'
-          });
         }
         
-        setTimeout(() => setIsScrolling(false), 800);
+        // Shorter timeout for more responsive feel
+        setTimeout(() => setIsScrolling(false), 600);
       }
     };
 
@@ -104,6 +113,7 @@ export const BlockchainTimeline: React.FC = () => {
       window.addEventListener('wheel', handleWheel, { passive: false });
     } else {
       document.addEventListener('touchstart', handleTouchStart, { passive: true });
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
       document.addEventListener('touchend', handleTouchEnd, { passive: true });
     }
 
@@ -111,6 +121,7 @@ export const BlockchainTimeline: React.FC = () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
       document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [activeBlock, isScrolling, scrollAccumulator]);
@@ -193,7 +204,7 @@ export const BlockchainTimeline: React.FC = () => {
                 left: window.innerWidth < 768 ? 0 : 'auto',
                 right: window.innerWidth < 768 ? 0 : 'auto',
                 width: window.innerWidth < 768 ? '100%' : 'auto',
-                transition: window.innerWidth < 768 ? 'transform 0.5s ease-in-out, opacity 0.3s ease-in-out' : 'none'
+                transition: window.innerWidth < 768 ? 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease-out' : 'none'
               }}
           >
             {/* Timeline Connector - Hidden on mobile */}
