@@ -79,13 +79,14 @@ export const BlockchainTimeline: React.FC = () => {
     };
 
     const handleWheel = (e: WheelEvent) => {
+      if (isMobile) return; // Disable wheel events on mobile, use touch only
       e.preventDefault();
       if (isScrolling) return;
 
       const newAccumulator = scrollAccumulator + e.deltaY;
       setScrollAccumulator(newAccumulator);
 
-      const threshold = isMobile ? 30 : 50; // Lower threshold for mobile
+      const threshold = 50;
       
       if (Math.abs(newAccumulator) > threshold) {
         setIsScrolling(true);
@@ -94,22 +95,22 @@ export const BlockchainTimeline: React.FC = () => {
         
         if (nextBlock !== activeBlock) {
           setActiveBlock(nextBlock);
-          if (!isMobile) {
-            window.scrollTo({
-              top: nextBlock * window.innerHeight,
-              behavior: 'smooth'
-            });
-          }
+          window.scrollTo({
+            top: nextBlock * window.innerHeight,
+            behavior: 'smooth'
+          });
         }
 
         setScrollAccumulator(0);
-        setTimeout(() => setIsScrolling(false), isMobile ? 600 : 800);
+        setTimeout(() => setIsScrolling(false), 800);
       }
     };
 
-    // Always add scroll and wheel events
+    // Add scroll and wheel events (wheel disabled on mobile)
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('wheel', handleWheel, { passive: false });
+    if (!isMobile) {
+      window.addEventListener('wheel', handleWheel, { passive: false });
+    }
     
     // Mobile touch events
     if (isMobile) {
@@ -120,7 +121,9 @@ export const BlockchainTimeline: React.FC = () => {
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('wheel', handleWheel);
+      if (!isMobile) {
+        window.removeEventListener('wheel', handleWheel);
+      }
       if (isMobile) {
         window.removeEventListener('touchstart', handleTouchStart);
         window.removeEventListener('touchmove', handleTouchMove);
