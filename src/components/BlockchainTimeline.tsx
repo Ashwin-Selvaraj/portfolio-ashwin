@@ -87,13 +87,12 @@ export const BlockchainTimeline: React.FC = () => {
       touchEndY = e.changedTouches[0].clientY;
       const swipeDistance = touchStartY - touchEndY;
       const swipeTime = Date.now() - touchStartTime;
-      const swipeVelocity = Math.abs(swipeDistance) / swipeTime;
       
-      // Higher thresholds for more deliberate scrolling
-      const minDistance = 80;
-      const minVelocity = 0.3;
+      // More precise thresholds like desktop - require deliberate swipe
+      const minDistance = 50;
+      const maxTime = 300; // Must be a quick swipe
 
-      if (Math.abs(swipeDistance) > minDistance || swipeVelocity > minVelocity) {
+      if (Math.abs(swipeDistance) > minDistance && swipeTime < maxTime) {
         setIsScrolling(true);
         const direction = swipeDistance > 0 ? 1 : -1;
         const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
@@ -102,8 +101,8 @@ export const BlockchainTimeline: React.FC = () => {
           setActiveBlock(nextBlock);
         }
         
-        // Longer timeout to prevent rapid scrolling
-        setTimeout(() => setIsScrolling(false), 1200);
+        // Timeout similar to desktop for consistent feel
+        setTimeout(() => setIsScrolling(false), 800);
       }
     };
 
