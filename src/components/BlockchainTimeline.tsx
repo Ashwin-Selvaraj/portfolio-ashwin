@@ -14,12 +14,60 @@ export const BlockchainTimeline: React.FC = () => {
   const [validatedTransaction, setValidatedTransaction] = useState<any>(null);
   const [fraudulentTransaction, setFraudulentTransaction] = useState<any>(null);
   const [scrollAccumulator, setScrollAccumulator] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Mobile touch navigation
+  const handleTouchStart = (e: TouchEvent) => {
+    if (!isMobile) return;
+    setTouchStart(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isMobile || touchStart === null || isScrolling) return;
+    e.preventDefault();
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (!isMobile || touchStart === null || isScrolling) return;
+    
+    const touchEnd = e.changedTouches[0].clientY;
+    const diff = touchStart - touchEnd;
+    const threshold = 50;
+
+    if (Math.abs(diff) > threshold) {
+      setIsScrolling(true);
+      const direction = diff > 0 ? 1 : -1;
+      const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
+      
+      if (nextBlock !== activeBlock) {
+        setActiveBlock(nextBlock);
+        // Use immediate scroll for mobile
+        window.scrollTo({
+          top: nextBlock * window.innerHeight,
+          behavior: 'smooth'
+        });
+      }
+      
+      setTimeout(() => setIsScrolling(false), 600);
+    }
+    
+    setTouchStart(null);
+  };
+
   useEffect(() => {
     const handleScroll = () => {
-      if (isScrolling) return;
+      if (isScrolling || isMobile) return;
       
       const scrollY = window.scrollY;
       const windowHeight = window.innerHeight;
@@ -31,15 +79,14 @@ export const BlockchainTimeline: React.FC = () => {
     };
 
     const handleWheel = (e: WheelEvent) => {
+      if (isMobile) return; // Let mobile handle touch events
       e.preventDefault();
       if (isScrolling) return;
 
-      // Add scroll threshold - require more deliberate scrolling
       const newAccumulator = scrollAccumulator + e.deltaY;
       setScrollAccumulator(newAccumulator);
 
-      // Only move blocks when accumulator exceeds threshold
-      const threshold = 50; // Adjust this value to make it more/less sensitive
+      const threshold = 50;
       
       if (Math.abs(newAccumulator) > threshold) {
         setIsScrolling(true);
@@ -54,20 +101,29 @@ export const BlockchainTimeline: React.FC = () => {
           });
         }
 
-        // Reset accumulator after movement
         setScrollAccumulator(0);
         setTimeout(() => setIsScrolling(false), 800);
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('wheel', handleWheel, { passive: false });
+    if (!isMobile) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      window.addEventListener('wheel', handleWheel, { passive: false });
+    } else {
+      // Mobile touch events
+      window.addEventListener('touchstart', handleTouchStart, { passive: true });
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [activeBlock, isScrolling]);
+  }, [activeBlock, isScrolling, isMobile, scrollAccumulator, touchStart]);
 
   const handleBlockClick = (blockId: string) => {
     setExpandedBlock(blockId);
@@ -84,7 +140,7 @@ export const BlockchainTimeline: React.FC = () => {
   };
 
   return (
-    <div className="relative">
+    <div className={`relative ${isMobile ? 'h-screen overflow-hidden' : ''}`}>
       {/* Transaction Game - Hidden on mobile */}
       <div className="hidden lg:block">
         <TransactionGame
@@ -99,17 +155,19 @@ export const BlockchainTimeline: React.FC = () => {
         />
       </div>
 
-      {/* Timeline Navigation */}
+      {/* Timeline Navigation & Progress Indicator */}
       <div className="fixed top-4 right-2 md:right-4 z-50 flex flex-col space-y-1 md:space-y-2">
         {blockchainData.map((block, index) => (
           <button
             key={block.id}
             onClick={() => {
               setActiveBlock(index);
-              window.scrollTo({
-                top: index * window.innerHeight,
-                behavior: 'smooth'
-              });
+              if (!isMobile) {
+                window.scrollTo({
+                  top: index * window.innerHeight,
+                  behavior: 'smooth'
+                });
+              }
             }}
             className={`w-2 h-2 md:w-3 md:h-3 rounded-full border transition-all duration-300 ${
               activeBlock === index
@@ -121,20 +179,65 @@ export const BlockchainTimeline: React.FC = () => {
         ))}
       </div>
 
+      {/* Mobile Progress Bar */}
+      {isMobile && (
+        <div className="fixed top-4 left-4 z-50 bg-card/80 backdrop-blur-sm border border-border rounded-lg p-2">
+          <div className="text-xs text-muted-foreground mb-1">
+            {activeBlock + 1} / {blockchainData.length}
+          </div>
+          <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${((activeBlock + 1) / blockchainData.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Swipe Indicator */}
+      {isMobile && activeBlock === 0 && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 text-center animate-bounce">
+          <div className="text-muted-foreground text-sm mb-2">Swipe up to explore</div>
+          <div className="w-6 h-8 border border-muted-foreground rounded-full mx-auto flex items-start justify-center p-1">
+            <div className="w-1 h-2 bg-muted-foreground rounded-full animate-pulse" />
+          </div>
+        </div>
+      )}
+
       {/* Main Timeline */}
-      <div ref={timelineRef} className="relative px-4 md:px-8">
+      <div ref={timelineRef} className={`relative ${isMobile ? '' : 'px-4 md:px-8'}`}>
         {blockchainData.map((block, index) => (
           <div
             key={block.id}
             ref={(el) => blockRefs.current[index] = el}
-            className="min-h-[80vh] md:min-h-screen flex items-center justify-center relative"
+            className={`${isMobile ? 'h-screen mobile-scroll-item' : 'min-h-[80vh] md:min-h-screen'} flex items-center justify-center relative`}
             style={{ 
-              transform: `translateZ(${(index - activeBlock) * 50}px)`,
-              opacity: Math.abs(index - activeBlock) > 2 ? 0.3 : 1
+              // Mobile: Only show active block with cinematic transitions
+              opacity: isMobile 
+                ? (activeBlock === index ? 1 : 0) 
+                : (Math.abs(index - activeBlock) > 2 ? 0.3 : 1),
+              transform: isMobile 
+                ? (activeBlock === index 
+                    ? 'translateY(0) scale(1)' 
+                    : `translateY(${(index - activeBlock) * 100}vh) scale(0.8)`)
+                : `translateZ(${(index - activeBlock) * 50}px)`,
+              // Mobile: Smooth cinematic transitions
+              transition: isMobile 
+                ? 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
+                : 'none',
+              // Mobile: Ensure blocks are positioned properly
+              ...(isMobile && {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: activeBlock === index ? 10 : 1
+              })
             }}
           >
-            {/* Timeline Connector */}
-            {index < blockchainData.length - 1 && (
+            {/* Timeline Connector - Hidden on mobile */}
+            {index < blockchainData.length - 1 && !isMobile && (
               <TimelineConnector
                 startBlock={block}
                 endBlock={blockchainData[index + 1]}
@@ -150,15 +253,24 @@ export const BlockchainTimeline: React.FC = () => {
               isNext={activeBlock < index}
               onClick={() => handleBlockClick(block.id)}
               style={{
-                transform: `
-                  perspective(1000px)
-                  rotateX(${(index - activeBlock) * 10}deg)
-                  rotateY(${(index - activeBlock) * 5}deg)
-                  translateX(${window.innerWidth < 768 ? 0 : block.position.x}px)
-                  translateY(${window.innerWidth < 768 ? 0 : block.position.y}px)
-                  translateZ(${block.position.z + (index - activeBlock) * 100}px)
-                  scale(${activeBlock === index ? 1 : 0.8})
-                `
+                transform: isMobile 
+                  ? `perspective(800px) rotateX(${activeBlock === index ? 0 : 10}deg) scale(${activeBlock === index ? 0.9 : 0.7})`
+                  : `
+                      perspective(1000px)
+                      rotateX(${(index - activeBlock) * 10}deg)
+                      rotateY(${(index - activeBlock) * 5}deg)
+                      translateX(${block.position.x}px)
+                      translateY(${block.position.y}px)
+                      translateZ(${block.position.z + (index - activeBlock) * 100}px)
+                      scale(${activeBlock === index ? 1 : 0.8})
+                    `,
+                transition: isMobile ? 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+                // Mobile: Ensure proper sizing and centering
+                ...(isMobile && {
+                  maxWidth: '90vw',
+                  maxHeight: '70vh',
+                  margin: 'auto'
+                })
               }}
             />
           </div>
