@@ -67,7 +67,7 @@ export const BlockchainTimeline: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (isScrolling || isMobile) return;
+      if (isScrolling) return;
       
       const scrollY = window.scrollY;
       const windowHeight = window.innerHeight;
@@ -79,14 +79,13 @@ export const BlockchainTimeline: React.FC = () => {
     };
 
     const handleWheel = (e: WheelEvent) => {
-      if (isMobile) return; // Let mobile handle touch events
       e.preventDefault();
       if (isScrolling) return;
 
       const newAccumulator = scrollAccumulator + e.deltaY;
       setScrollAccumulator(newAccumulator);
 
-      const threshold = 50;
+      const threshold = isMobile ? 30 : 50; // Lower threshold for mobile
       
       if (Math.abs(newAccumulator) > threshold) {
         setIsScrolling(true);
@@ -95,22 +94,25 @@ export const BlockchainTimeline: React.FC = () => {
         
         if (nextBlock !== activeBlock) {
           setActiveBlock(nextBlock);
-          window.scrollTo({
-            top: nextBlock * window.innerHeight,
-            behavior: 'smooth'
-          });
+          if (!isMobile) {
+            window.scrollTo({
+              top: nextBlock * window.innerHeight,
+              behavior: 'smooth'
+            });
+          }
         }
 
         setScrollAccumulator(0);
-        setTimeout(() => setIsScrolling(false), 800);
+        setTimeout(() => setIsScrolling(false), isMobile ? 600 : 800);
       }
     };
 
-    if (!isMobile) {
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      window.addEventListener('wheel', handleWheel, { passive: false });
-    } else {
-      // Mobile touch events
+    // Always add scroll and wheel events
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    
+    // Mobile touch events
+    if (isMobile) {
       window.addEventListener('touchstart', handleTouchStart, { passive: true });
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
       window.addEventListener('touchend', handleTouchEnd, { passive: true });
@@ -119,9 +121,11 @@ export const BlockchainTimeline: React.FC = () => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
+      if (isMobile) {
+        window.removeEventListener('touchstart', handleTouchStart);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+      }
     };
   }, [activeBlock, isScrolling, isMobile, scrollAccumulator, touchStart]);
 
@@ -140,7 +144,7 @@ export const BlockchainTimeline: React.FC = () => {
   };
 
   return (
-    <div className={`relative ${isMobile ? 'h-screen overflow-hidden' : ''}`}>
+    <div className="relative" style={{ height: isMobile ? '100vh' : `${blockchainData.length * 100}vh` }}>
       {/* Transaction Game - Hidden on mobile */}
       <div className="hidden lg:block">
         <TransactionGame
