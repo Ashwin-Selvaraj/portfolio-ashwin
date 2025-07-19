@@ -18,6 +18,8 @@ export const BlockchainTimeline: React.FC = () => {
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    
     const handleScroll = () => {
       if (isScrolling) return;
       
@@ -31,6 +33,9 @@ export const BlockchainTimeline: React.FC = () => {
     };
 
     const handleWheel = (e: WheelEvent) => {
+      // Skip wheel handling on mobile - use touch instead
+      if (isMobile) return;
+      
       e.preventDefault();
       if (isScrolling) return;
 
@@ -60,14 +65,55 @@ export const BlockchainTimeline: React.FC = () => {
       }
     };
 
+    // Mobile touch handling
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!isMobile) return;
+      touchStartY = e.changedTouches[0].screenY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (!isMobile || isScrolling) return;
+      
+      touchEndY = e.changedTouches[0].screenY;
+      const swipeDistance = touchStartY - touchEndY;
+      const threshold = 50;
+
+      if (Math.abs(swipeDistance) > threshold) {
+        setIsScrolling(true);
+        const direction = swipeDistance > 0 ? 1 : -1;
+        const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
+        
+        if (nextBlock !== activeBlock) {
+          setActiveBlock(nextBlock);
+          window.scrollTo({
+            top: nextBlock * window.innerHeight,
+            behavior: 'smooth'
+          });
+        }
+        
+        setTimeout(() => setIsScrolling(false), 800);
+      }
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('wheel', handleWheel, { passive: false });
+    
+    if (!isMobile) {
+      window.addEventListener('wheel', handleWheel, { passive: false });
+    } else {
+      document.addEventListener('touchstart', handleTouchStart, { passive: true });
+      document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [activeBlock, isScrolling]);
+  }, [activeBlock, isScrolling, scrollAccumulator]);
 
   const handleBlockClick = (blockId: string) => {
     setExpandedBlock(blockId);
