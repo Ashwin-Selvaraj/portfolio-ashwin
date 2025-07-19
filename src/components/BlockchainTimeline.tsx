@@ -17,113 +17,88 @@ export const BlockchainTimeline: React.FC = () => {
   const timelineRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    
-    const handleScroll = () => {
-      if (isScrolling) return;
-      
-      const scrollY = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const currentBlockIndex = Math.round(scrollY / windowHeight);
-      
-      if (currentBlockIndex !== activeBlock && currentBlockIndex < blockchainData.length) {
-        setActiveBlock(currentBlockIndex);
-      }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
     };
 
-    const handleWheel = (e: WheelEvent) => {
-      // Skip wheel handling on mobile - use touch instead
-      if (isMobile) return;
-      
-      e.preventDefault();
-      if (isScrolling) return;
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-      // Add scroll threshold - require more deliberate scrolling
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (isMobile || isScrolling) return;
+      e.preventDefault();
+
       const newAccumulator = scrollAccumulator + e.deltaY;
       setScrollAccumulator(newAccumulator);
 
-      // Only move blocks when accumulator exceeds threshold
-      const threshold = 50; // Adjust this value to make it more/less sensitive
-      
+      const threshold = 100;
       if (Math.abs(newAccumulator) > threshold) {
-        setIsScrolling(true);
         const direction = newAccumulator > 0 ? 1 : -1;
         const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
-        
+
         if (nextBlock !== activeBlock) {
+          setIsScrolling(true);
           setActiveBlock(nextBlock);
           window.scrollTo({
             top: nextBlock * window.innerHeight,
-            behavior: 'smooth'
+            behavior: 'smooth',
           });
+          setScrollAccumulator(0);
+          setTimeout(() => setIsScrolling(false), 700);
         }
-
-        // Reset accumulator after movement
-        setScrollAccumulator(0);
-        setTimeout(() => setIsScrolling(false), 800);
       }
     };
 
-    // Mobile touch handling
     let touchStartY = 0;
     let touchEndY = 0;
-    let touchStartTime = 0;
-    
+
     const handleTouchStart = (e: TouchEvent) => {
       if (!isMobile) return;
       touchStartY = e.changedTouches[0].clientY;
-      touchStartTime = Date.now();
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isMobile || isScrolling) return;
-      e.preventDefault(); // Prevent default scrolling
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       if (!isMobile || isScrolling) return;
-      
       touchEndY = e.changedTouches[0].clientY;
-      const swipeDistance = touchStartY - touchEndY;
-      const swipeTime = Date.now() - touchStartTime;
-      
-      // More precise thresholds like desktop - require deliberate swipe
-      const minDistance = 50;
-      const maxTime = 300; // Must be a quick swipe
+      const swipe = touchStartY - touchEndY;
 
-      if (Math.abs(swipeDistance) > minDistance && swipeTime < maxTime) {
-        setIsScrolling(true);
-        const direction = swipeDistance > 0 ? 1 : -1;
+      if (Math.abs(swipe) > 50) {
+        const direction = swipe > 0 ? 1 : -1;
         const nextBlock = Math.max(0, Math.min(blockchainData.length - 1, activeBlock + direction));
-        
         if (nextBlock !== activeBlock) {
+          setIsScrolling(true);
           setActiveBlock(nextBlock);
+          setTimeout(() => setIsScrolling(false), 700);
         }
-        
-        // Timeout similar to desktop for consistent feel
-        setTimeout(() => setIsScrolling(false), 800);
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
     if (!isMobile) {
       window.addEventListener('wheel', handleWheel, { passive: false });
     } else {
-      document.addEventListener('touchstart', handleTouchStart, { passive: true });
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd, { passive: true });
+      window.addEventListener('touchstart', handleTouchStart);
+      window.addEventListener('touchend', handleTouchEnd);
     }
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [activeBlock, isScrolling, scrollAccumulator]);
+  }, [activeBlock, isMobile, isScrolling, scrollAccumulator]);
+
+  useEffect(() => {
+    window.scrollTo({
+      top: activeBlock * window.innerHeight,
+      behavior: 'smooth',
+    });
+  }, [activeBlock]);
 
   const handleBlockClick = (blockId: string) => {
     setExpandedBlock(blockId);
@@ -141,33 +116,23 @@ export const BlockchainTimeline: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* Transaction Game - Hidden on mobile */}
       <div className="hidden lg:block">
         <TransactionGame
           onTransactionValidated={handleTransactionValidated}
           onFraudDetected={handleFraudDetected}
         />
-
-        {/* Transaction Feedback */}
         <TransactionFeedback
           validatedTransaction={validatedTransaction}
           fraudulentTransaction={fraudulentTransaction}
         />
       </div>
 
-      {/* Timeline Navigation */}
-      <div className="fixed top-4 right-2 md:right-4 z-50 flex flex-col space-y-1 md:space-y-2">
+      <div className="fixed top-4 right-2 md:right-4 z-50 flex flex-col space-y-2">
         {blockchainData.map((block, index) => (
           <button
             key={block.id}
-            onClick={() => {
-              setActiveBlock(index);
-              window.scrollTo({
-                top: index * window.innerHeight,
-                behavior: 'smooth'
-              });
-            }}
-            className={`w-2 h-2 md:w-3 md:h-3 rounded-full border transition-all duration-300 ${
+            onClick={() => setActiveBlock(index)}
+            className={`w-3 h-3 rounded-full border transition-all duration-300 ${
               activeBlock === index
                 ? 'bg-primary border-primary shadow-[0_0_10px_hsl(var(--primary))]'
                 : 'bg-transparent border-muted-foreground hover:border-primary'
@@ -177,45 +142,37 @@ export const BlockchainTimeline: React.FC = () => {
         ))}
       </div>
 
-      {/* Main Timeline */}
-      <div 
-        ref={timelineRef} 
+      <div
+        ref={timelineRef}
         className="relative px-4 md:px-8"
-        style={{ 
+        style={{
           height: `${blockchainData.length * 100}vh`,
-          overflow: window.innerWidth < 768 ? 'hidden' : 'visible'
+          overflow: 'hidden',
         }}
       >
         {blockchainData.map((block, index) => (
-            <div
-              key={block.id}
-              ref={(el) => blockRefs.current[index] = el}
-              className="min-h-screen flex items-center justify-center relative"
-              style={{ 
-                transform: window.innerWidth < 768 
-                  ? `translateY(${(index - activeBlock) * 100}vh)`
-                  : `translateZ(${(index - activeBlock) * 50}px)`,
-                opacity: window.innerWidth < 768 
-                  ? (activeBlock === index ? 1 : 0)
-                  : (Math.abs(index - activeBlock) > 2 ? 0.3 : 1),
-                position: window.innerWidth < 768 ? 'absolute' : 'relative',
-                top: window.innerWidth < 768 ? 0 : 'auto',
-                left: window.innerWidth < 768 ? 0 : 'auto',
-                right: window.innerWidth < 768 ? 0 : 'auto',
-                width: window.innerWidth < 768 ? '100%' : 'auto',
-                transition: window.innerWidth < 768 ? 'transform 1.0s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.6s ease-out' : 'none'
-              }}
+          <div
+            key={block.id}
+            ref={(el) => (blockRefs.current[index] = el)}
+            className="min-h-screen flex items-center justify-center relative"
+            style={{
+              transform: isMobile
+                ? `translateY(${(index - activeBlock) * 100}vh)`
+                : `translateZ(${(index - activeBlock) * 50}px)`,
+              opacity: isMobile ? (activeBlock === index ? 1 : 0) : 1,
+              position: isMobile ? 'absolute' : 'relative',
+              transition: 'transform 0.8s ease, opacity 0.8s ease',
+              width: '100%',
+              top: 0,
+            }}
           >
-            {/* Timeline Connector - Hidden on mobile */}
-            {index < blockchainData.length - 1 && window.innerWidth >= 768 && (
+            {index < blockchainData.length - 1 && !isMobile && (
               <TimelineConnector
                 startBlock={block}
                 endBlock={blockchainData[index + 1]}
                 isActive={activeBlock >= index}
               />
             )}
-
-            {/* Block Component */}
             <BlockComponent
               block={block}
               isActive={activeBlock === index}
@@ -223,7 +180,7 @@ export const BlockchainTimeline: React.FC = () => {
               isNext={activeBlock < index}
               onClick={() => handleBlockClick(block.id)}
               style={{
-                transform: window.innerWidth < 768 
+                transform: isMobile
                   ? 'none'
                   : `
                     perspective(1000px)
@@ -233,22 +190,20 @@ export const BlockchainTimeline: React.FC = () => {
                     translateY(${block.position.y}px)
                     translateZ(${block.position.z + (index - activeBlock) * 100}px)
                     scale(${activeBlock === index ? 1 : 0.8})
-                  `
+                  `,
               }}
             />
           </div>
         ))}
       </div>
 
-      {/* Block Details Modal */}
       {expandedBlock && (
         <BlockModal
-          block={blockchainData.find(b => b.id === expandedBlock)!}
+          block={blockchainData.find((b) => b.id === expandedBlock)!}
           onClose={() => setExpandedBlock(null)}
         />
       )}
 
-      {/* Current Block Info */}
       <div className="fixed bottom-4 left-2 md:left-4 z-40 bg-card/80 backdrop-blur-sm border border-border rounded-lg p-2 md:p-4 max-w-[200px] md:max-w-sm">
         <div className="text-xs md:text-sm text-muted-foreground font-mono">
           Block #{blockchainData[activeBlock]?.blockNumber}
